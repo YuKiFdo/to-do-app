@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: todo-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-todo_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-todo_password}
+      POSTGRES_DB: ${POSTGRES_DB:-todo_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-todo_user} -d ${POSTGRES_DB:-todo_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./todo-backend
+      dockerfile: Dockerfile.backend
+    container_name: todo-backend
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-todo_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-todo_password}
+      DB_DATABASE: ${POSTGRES_DB:-todo_db}
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./todo-frontend
+      dockerfile: Dockerfile.frontend
+    container_name: todo-frontend
+    ports:
+      - "80:80"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  test-db:
+    image: postgres:16-alpine
+    container_name: todo-test-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-todo_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-todo_password}
+      POSTGRES_DB: ${POSTGRES_DB:-todo_db_test}
+    ports:
+      - "5433:5432"
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-todo_user} -d ${POSTGRES_DB:-todo_db_test}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - test
+
+volumes:
+  postgres_data:
+  test_postgres_data:
+
