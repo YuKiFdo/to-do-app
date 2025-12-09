@@ -19,7 +19,7 @@ Before you begin, ensure you have the following installed:
 
 1. **Clone the repository** (if you haven't already):
    ```bash
-   git clone <repository-url>
+   git clone git@github.com:YuKiFdo/to-do-app.git
    cd ToDo-App
    ```
 
